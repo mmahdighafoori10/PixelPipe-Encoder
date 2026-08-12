@@ -1,0 +1,17 @@
+.venv/
+.build-tools/
+.release/
+build/
+dist/
+__pycache__/
+.pytest_cache/
+.test-data/
+.test-exe-data/
+.test-media/
+.install-smoke/
+.install-final-verify/
+.portable-final-verify/
+installer-smoke.log
+licenses-lgpl-download.txt
+assets/app_icon_chroma.png
+ui_preview*.png

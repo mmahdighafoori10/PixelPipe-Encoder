@@ -1,0 +1,31 @@
+PixelPipe Encoder - Third-Party Notices
+=======================================
+
+PixelPipe uses PySide6 6.11.1, Shiboken6 6.11.1, and Qt 6.11.1 under the
+GNU Lesser General Public License version 3. The LGPL text and a component/source
+notice are included in the installed application's licenses directory. The Qt
+shared libraries remain separate files so users can inspect or replace them.
+
+Project information:
+https://doc.qt.io/qtforpython-6/
+https://www.qt.io/licensing/
+
+PixelPipe can download and invoke FFmpeg as a separate command-line program.
+FFmpeg is not embedded in the PixelPipe installer. The downloaded Windows build
+contains its own license and source information. FFmpeg licensing information:
+https://ffmpeg.org/legal.html
+
+Windows FFmpeg build provider linked by the official FFmpeg download page:
+https://www.gyan.dev/ffmpeg/builds/
+
+Python:
+https://docs.python.org/3/license.html
+
+psutil 7.2.2 (BSD-3-Clause):
+https://github.com/giampaolo/psutil/blob/master/LICENSE
+
+PyInstaller 6.22.0 bootloader:
+https://pyinstaller.org/en/stable/license.html
+
+Inno Setup 7.1.0 is used to produce the Windows installer:
+https://jrsoftware.org/isinfo.php
