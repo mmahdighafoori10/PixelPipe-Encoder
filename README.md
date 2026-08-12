@@ -72,6 +72,11 @@ Build the application folder:
 Compile `installer\PixelPipeEncoder.iss` with Inno Setup to produce the Windows
 installer. See [PORTABLE.md](PORTABLE.md) for the portable package behavior.
 
+## Contact
+
+For questions, feedback, or collaboration, email
+[mmahdighafoori10@gmail.com](mailto:mmahdighafoori10@gmail.com).
+
 ## Third-party components
 
 PixelPipe uses PySide6/Qt and psutil and invokes FFmpeg as a separate program.
@@ -80,4 +85,3 @@ Applicable notices and licenses are included in `licenses/` and
 
 The retro-platformer artwork is original PixelPipe artwork and does not include
 Nintendo characters, logos, or game assets.
-
