@@ -47,6 +47,13 @@ a = Analysis(
     noarchive=False,
     optimize=1,
 )
+
+if sys.platform == "win32":
+    # Qt uses Windows' built-in ICU. A developer tool's PATH (for example
+    # Poppler) can cause PyInstaller to collect an incompatible ICU instead.
+    windows_icu = {"icu.dll", "icuuc.dll", "icuin.dll"}
+    a.binaries = [entry for entry in a.binaries if Path(entry[0]).name.lower() not in windows_icu]
+
 pyz = PYZ(a.pure)
 
 exe = EXE(
