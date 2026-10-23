@@ -14,8 +14,9 @@ Get the ready-to-use Windows builds from the
 - **Installer:** guided per-user installation with Start Menu and uninstaller.
 - **Portable ZIP:** extract the folder anywhere and run `PixelPipeEncoder.exe`.
 
-**macOS preview:** native Apple Silicon (`arm64`) and Intel (`x86_64`) DMG
-packages are built by the [Build macOS DMG workflow](https://github.com/mmahdighafoori10/PixelPipe-Encoder/actions/workflows/macos.yml).
+**macOS preview:** download the native Apple Silicon (`arm64`) or Intel (`x86_64`)
+DMG from the [macOS preview release](https://github.com/mmahdighafoori10/PixelPipe-Encoder/releases/tag/macos-preview-0.1.0).
+Both packages are built by the [Build macOS DMG workflow](https://github.com/mmahdighafoori10/PixelPipe-Encoder/actions/workflows/macos.yml).
 See [MACOS.md](MACOS.md) for installation, FFmpeg setup, and preview limitations.
 
 The application is currently unsigned, so Windows SmartScreen may display an
