@@ -1,0 +1,46 @@
+name: Publish verified macOS preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: Successful Build macOS DMG run ID
+        required: true
+        default: '39985480202'
+  push:
+    branches: [macos-dmg]
+    paths: [.github/workflows/publish-macos.yml]
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BUILD_RUN_ID: ${{ inputs.build_run_id || '39985480202' }}
+    steps:
+      - name: Verify successful build from this repository
+        run: |
+          gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN_ID" > run.json
+          jq -e '.conclusion == "success" and .name == "Build macOS DMG"' run.json
+          gh release view macos-preview-0.1.0 --json isDraft --jq .isDraft | grep -x true
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ env.BUILD_RUN_ID }}
+          pattern: PixelPipe-macOS-*
+          merge-multiple: true
+          path: release-files
+      - name: Verify both DMGs and publish existing draft
+        working-directory: release-files
+        run: |
+          test -f PixelPipe-Encoder-macOS-0.1.0-arm64.dmg
+          test -f PixelPipe-Encoder-macOS-0.1.0-x86_64.dmg
+          sha256sum --check ./*.dmg.sha256
+          gh release upload macos-preview-0.1.0 ./*.dmg
+          gh release edit macos-preview-0.1.0 --draft=false
