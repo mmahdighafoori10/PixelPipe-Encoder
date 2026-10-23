@@ -5,8 +5,11 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
+import sys
 import tempfile
+import time
 import urllib.error
 import urllib.request
 import zipfile
@@ -20,8 +23,17 @@ from .paths import resource_path, tools_directory
 
 FFMPEG_DOWNLOAD_URL = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
 FFMPEG_CHECKSUM_URL = f"{FFMPEG_DOWNLOAD_URL}.sha256"
-FFMPEG_GUIDE_URL = "https://ffmpeg.org/download.html#build-windows"
-FFMPEG_BUILD_URL = "https://www.gyan.dev/ffmpeg/builds/"
+FFMPEG_GUIDE_URL = (
+    "https://ffmpeg.org/download.html#build-mac"
+    if sys.platform == "darwin"
+    else "https://ffmpeg.org/download.html#build-windows"
+)
+FFMPEG_BUILD_URL = (
+    "https://formulae.brew.sh/formula/ffmpeg"
+    if sys.platform == "darwin"
+    else "https://www.gyan.dev/ffmpeg/builds/"
+)
+HOMEBREW_GUIDE_URL = "https://brew.sh/"
 ProgressCallback = Callable[[int, str], None]
 
 
@@ -55,10 +67,17 @@ def locate_ffmpeg(custom_path: Path | None = None) -> FFmpegInstallation | None:
     ffmpeg_on_path = shutil.which("ffmpeg")
     if ffmpeg_on_path:
         candidates.append((Path(ffmpeg_on_path).resolve().parent, "System PATH"))
+    if sys.platform == "darwin":
+        # Finder-launched applications do not inherit a terminal's Homebrew PATH.
+        candidates.extend(
+            (Path(prefix) / "bin", "Homebrew / local installation")
+            for prefix in ("/opt/homebrew", "/usr/local", "/opt/local")
+        )
 
     tools_root = tools_directory() / "ffmpeg"
     if tools_root.exists():
-        for ffmpeg_file in sorted(tools_root.glob("versions/*/bin/ffmpeg.exe"), reverse=True):
+        executable = "ffmpeg.exe" if os.name == "nt" else "ffmpeg"
+        for ffmpeg_file in sorted(tools_root.glob(f"versions/*/bin/{executable}"), reverse=True):
             candidates.append((ffmpeg_file.parent, "Installed by PixelPipe"))
 
     seen: set[Path] = set()
@@ -92,6 +111,11 @@ def install_ffmpeg(
 ) -> FFmpegInstallation:
     report = progress or (lambda _percent, _message: None)
     cancel = cancel_event or Event()
+    _raise_if_cancelled(cancel)
+    if sys.platform == "darwin":
+        return _install_macos_ffmpeg(report, cancel)
+    if os.name != "nt":
+        raise DependencyError("Install FFmpeg with your system package manager, then choose its bin folder.")
     report(1, "Preparing the FFmpeg download...")
 
     expected_hash = _download_checksum(cancel)
@@ -144,6 +168,69 @@ def install_ffmpeg(
     if not installation:
         raise DependencyError("FFmpeg was installed but could not be started.")
     report(100, "FFmpeg was installed successfully.")
+    return installation
+
+
+def find_homebrew() -> Path | None:
+    candidates = [Path("/opt/homebrew/bin/brew"), Path("/usr/local/bin/brew")]
+    on_path = shutil.which("brew")
+    if on_path:
+        candidates.insert(0, Path(on_path))
+    return next((path for path in candidates if path.is_file() and os.access(path, os.X_OK)), None)
+
+
+def _install_macos_ffmpeg(report: ProgressCallback, cancel: Event) -> FFmpegInstallation:
+    brew = find_homebrew()
+    if brew is None:
+        raise DependencyError(
+            f"Homebrew was not found. Install Homebrew from {HOMEBREW_GUIDE_URL}, "
+            "then click Install automatically again. You can also install FFmpeg and "
+            "ffprobe yourself and choose their folder."
+        )
+    report(5, "Installing FFmpeg with Homebrew. This may take several minutes...")
+    environment = os.environ.copy()
+    environment.update(HOMEBREW_NO_AUTO_UPDATE="1", HOMEBREW_NO_ENV_HINTS="1")
+    # Include Homebrew for child commands when launched from Finder.
+    environment["PATH"] = str(brew.parent) + os.pathsep + environment.get("PATH", "")
+    with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as log:
+        process = subprocess.Popen(
+            [str(brew), "install", "ffmpeg"],
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.DEVNULL,
+            env=environment,
+            start_new_session=True,
+        )
+        deadline = time.monotonic() + 1200
+        try:
+            while process.poll() is None:
+                _raise_if_cancelled(cancel)
+                if time.monotonic() > deadline:
+                    raise DependencyError("Homebrew setup timed out. Check the installation in Terminal.")
+                cancel.wait(0.2)
+            _raise_if_cancelled(cancel)
+        finally:
+            if process.poll() is None:
+                os.killpg(process.pid, signal.SIGTERM)
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    os.killpg(process.pid, signal.SIGKILL)
+                    process.wait()
+        if process.returncode:
+            log.seek(0)
+            details = log.read()[-1500:].strip()
+            raise DependencyError(
+                "Homebrew could not install FFmpeg. Open Terminal and run 'brew install ffmpeg'. "
+                f"See {HOMEBREW_GUIDE_URL} for help.\n{details}"
+            )
+    report(95, "Checking FFmpeg and ffprobe...")
+    installation = validate_ffmpeg_directory(brew.parent, "Installed with Homebrew")
+    if installation is None:
+        installation = locate_ffmpeg()
+    if installation is None:
+        raise DependencyError("FFmpeg installation finished, but ffmpeg and ffprobe could not be started.")
+    report(100, "FFmpeg is installed and ready.")
     return installation
 
 

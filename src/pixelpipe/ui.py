@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import platform
+import sys
 from pathlib import Path
 
 from PySide6.QtCore import QSettings, Qt, QTimer, QUrl, Signal
@@ -49,6 +50,7 @@ from PySide6.QtWidgets import (
 from .dependencies import (
     FFMPEG_BUILD_URL,
     FFMPEG_GUIDE_URL,
+    HOMEBREW_GUIDE_URL,
     FFmpegInstallation,
     locate_ffmpeg,
 )
@@ -283,8 +285,12 @@ class SettingsPanel(QScrollArea):
         output_form.addRow("Quality", self.quality_combo)
 
         self.encoder_combo = QComboBox()
-        self.encoder_combo.addItem("Auto · GPU then CPU", EncoderPreference.AUTO.value)
-        self.encoder_combo.addItem("NVIDIA NVENC", EncoderPreference.NVIDIA.value)
+        self.encoder_combo.addItem(
+            "Auto · CPU x264" if sys.platform == "darwin" else "Auto · GPU then CPU",
+            EncoderPreference.AUTO.value,
+        )
+        if sys.platform != "darwin":
+            self.encoder_combo.addItem("NVIDIA NVENC", EncoderPreference.NVIDIA.value)
         self.encoder_combo.addItem("CPU · x264", EncoderPreference.CPU.value)
         output_form.addRow("Encoder", self.encoder_combo)
         layout.addWidget(output_group)
@@ -451,13 +457,17 @@ class FFmpegDialog(QDialog):
         guide_button = QPushButton("Open official guide")
         guide_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(FFMPEG_GUIDE_URL)))
         links_row.addWidget(guide_button)
-        builds_button = QPushButton("Open Windows builds")
+        builds_button = QPushButton("Open macOS setup" if sys.platform == "darwin" else "Open Windows builds")
         builds_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(FFMPEG_BUILD_URL)))
         links_row.addWidget(builds_button)
         diagnostics_button = QPushButton("Copy diagnostics")
         diagnostics_button.clicked.connect(self._copy_diagnostics)
         links_row.addWidget(diagnostics_button)
         layout.addLayout(links_row)
+        if sys.platform == "darwin":
+            homebrew_button = QPushButton("Get Homebrew")
+            homebrew_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(HOMEBREW_GUIDE_URL)))
+            layout.addWidget(homebrew_button)
 
         footer = QHBoxLayout()
         footer.addStretch()
@@ -477,17 +487,24 @@ class FFmpegDialog(QDialog):
                 f"Ready via {self.installation.source}.\n{self.installation.version}"
             )
         else:
-            self.description.setText(
-                "FFmpeg and ffprobe were not found. PixelPipe can download a verified Windows build "
-                "into your local app-data folder. Administrator access is not required and the system PATH is not changed."
-            )
+            if sys.platform == "darwin":
+                self.description.setText(
+                    "FFmpeg and ffprobe were not found. PixelPipe can install them with Homebrew "
+                    "if Homebrew is already installed. Otherwise, use Get Homebrew first, or "
+                    "choose a folder containing both tools. No Python installation is required."
+                )
+            else:
+                self.description.setText(
+                    "FFmpeg and ffprobe were not found. PixelPipe can download a verified Windows build "
+                    "into your local app-data folder. Administrator access is not required and the system PATH is not changed."
+                )
 
     def _install_automatically(self) -> None:
         self.install_button.setEnabled(False)
         self.choose_button.setEnabled(False)
         self.progress_bar.setValue(0)
         self.progress_bar.show()
-        self.message_label.setText("Starting secure download...")
+        self.message_label.setText("Starting FFmpeg setup...")
         self.message_label.setStyleSheet("color:#9CC9E8;")
         self.message_label.show()
         self._install_thread = DependencyInstallThread()
@@ -497,13 +514,14 @@ class FFmpegDialog(QDialog):
         self._install_thread.start()
 
     def _choose_existing(self) -> None:
-        directory = QFileDialog.getExistingDirectory(self, "Choose the folder containing ffmpeg.exe")
+        executable = "ffmpeg.exe" if os.name == "nt" else "ffmpeg"
+        directory = QFileDialog.getExistingDirectory(self, f"Choose the folder containing {executable}")
         if not directory:
             return
         installation = locate_ffmpeg(Path(directory))
         if not installation:
             self._show_error(
-                "That folder does not contain a working ffmpeg.exe and ffprobe.exe. "
+                "That folder does not contain working FFmpeg and ffprobe executables. "
                 "Choose the bin folder that contains both files."
             )
             return
@@ -552,7 +570,7 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(APP_NAME)
-        self.setWindowIcon(QIcon(str(resource_path("assets/app_icon.ico"))))
+        self.setWindowIcon(QIcon(str(resource_path("assets/app_icon.png"))))
         self.resize(1240, 790)
         self.setMinimumSize(980, 680)
         self.setStyleSheet(APP_STYLE_SHEET)

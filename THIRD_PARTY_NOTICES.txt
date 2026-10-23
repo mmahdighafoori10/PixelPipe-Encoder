@@ -18,6 +18,12 @@ https://ffmpeg.org/legal.html
 Windows FFmpeg build provider linked by the official FFmpeg download page:
 https://www.gyan.dev/ffmpeg/builds/
 
+On macOS, PixelPipe can invoke an existing Homebrew installation to install
+FFmpeg separately. The tools are not redistributed in the DMG. Homebrew's
+formula, licenses, and source information:
+https://formulae.brew.sh/formula/ffmpeg
+https://brew.sh/
+
 Python:
 https://docs.python.org/3/license.html
 

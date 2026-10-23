@@ -1,6 +1,6 @@
 # PixelPipe Encoder
 
-PixelPipe Encoder is a friendly Windows desktop video encoder that keeps the
+PixelPipe Encoder is a friendly desktop video encoder for Windows and macOS that keeps the
 boring parts of transcoding out of the way. Drop in videos or folders, choose
 the result, and let the queue handle the rest.
 
@@ -13,6 +13,10 @@ Get the ready-to-use Windows builds from the
 
 - **Installer:** guided per-user installation with Start Menu and uninstaller.
 - **Portable ZIP:** extract the folder anywhere and run `PixelPipeEncoder.exe`.
+
+**macOS preview:** native Apple Silicon (`arm64`) and Intel (`x86_64`) DMG
+packages are built by the [Build macOS DMG workflow](https://github.com/mmahdighafoori10/PixelPipe-Encoder/actions/workflows/macos.yml).
+See [MACOS.md](MACOS.md) for installation, FFmpeg setup, and preview limitations.
 
 The application is currently unsigned, so Windows SmartScreen may display an
 `Unknown publisher` warning. Verify downloads against `SHA256SUMS.txt` in the
@@ -40,13 +44,16 @@ GitHub also provides a source ZIP through **Code > Download ZIP**.
 - Find an existing FFmpeg installation or securely download one with SHA-256 verification.
 - English recovery guidance, official links, folder selection, and copyable diagnostics.
 
-FFmpeg is not embedded in the repository or release. When needed, PixelPipe
-downloads the Windows essentials build into the current user's Local AppData;
-administrator access is not required.
+FFmpeg is not embedded in the repository or release. On Windows, PixelPipe
+downloads the essentials build into the current user's Local AppData;
+administrator access is not required. On macOS, PixelPipe detects Homebrew/local
+installations and can run `brew install ffmpeg` when Homebrew is already set up.
 
 ## Development
 
 Requirements: Windows 10/11 x64 and Python 3.10+.
+
+For macOS development and DMG builds, see [MACOS.md](MACOS.md).
 
 ```powershell
 python -m venv .venv

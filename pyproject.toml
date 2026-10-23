@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pixelpipe-encoder"
 version = "0.1.0"
-description = "A friendly Windows desktop video encoder"
+description = "A friendly Windows and macOS desktop video encoder"
 requires-python = ">=3.10"
 dependencies = [
   "PySide6>=6.8,<7",
