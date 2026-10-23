@@ -18,11 +18,15 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
     app.setOrganizationName("PixelPipe")
-    app.setWindowIcon(QIcon(str(resource_path("assets/app_icon.ico"))))
+    app.setWindowIcon(QIcon(str(resource_path("assets/app_icon.png"))))
     app.setStyle("Fusion")
     app.setStyleSheet(APP_STYLE_SHEET)
     window = MainWindow()
     window.show()
+    if "--smoke-test" in sys.argv:
+        from .diagnostics import run_smoke_test
+
+        return run_smoke_test(app, window)
     return app.exec()
 
 

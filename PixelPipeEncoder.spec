@@ -1,9 +1,11 @@
 from pathlib import Path
+import sys
 
 
 project_root = Path(SPEC).resolve().parent
 datas = [
     (str(project_root / "assets" / "app_icon.ico"), "assets"),
+    (str(project_root / "assets" / "app_icon.png"), "assets"),
     (str(project_root / "assets" / "splash.png"), "assets"),
     (str(project_root / "licenses"), "licenses"),
     (str(project_root / "THIRD_PARTY_NOTICES.txt"), "."),
@@ -45,6 +47,13 @@ a = Analysis(
     noarchive=False,
     optimize=1,
 )
+
+if sys.platform == "win32":
+    # Qt uses Windows' built-in ICU. A developer tool's PATH (for example
+    # Poppler) can cause PyInstaller to collect an incompatible ICU instead.
+    windows_icu = {"icu.dll", "icuuc.dll", "icuin.dll"}
+    a.binaries = [entry for entry in a.binaries if Path(entry[0]).name.lower() not in windows_icu]
+
 pyz = PYZ(a.pure)
 
 exe = EXE(
@@ -63,8 +72,8 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=str(project_root / "assets" / "app_icon.ico"),
-    version=str(project_root / "installer" / "version_info.txt"),
+    icon=str(project_root / "assets" / ("app_icon.icns" if sys.platform == "darwin" else "app_icon.ico")),
+    version=str(project_root / "installer" / "version_info.txt") if sys.platform == "win32" else None,
 )
 
 coll = COLLECT(
@@ -76,3 +85,17 @@ coll = COLLECT(
     upx_exclude=[],
     name="PixelPipeEncoder",
 )
+
+if sys.platform == "darwin":
+    app = BUNDLE(
+        coll,
+        name="PixelPipe Encoder.app",
+        icon=str(project_root / "assets" / "app_icon.icns"),
+        bundle_identifier="com.pixelpipe.encoder",
+        info_plist={
+            "CFBundleShortVersionString": "0.1.0",
+            "CFBundleVersion": "1",
+            "LSMinimumSystemVersion": "13.0",
+            "NSHighResolutionCapable": True,
+        },
+    )

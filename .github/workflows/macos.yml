@@ -1,0 +1,72 @@
+name: Build macOS DMG
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [macos-dmg]
+    paths:
+      - src/**
+      - tests/**
+      - tools/**
+      - assets/**
+      - PixelPipeEncoder.spec
+      - requirements-build.txt
+      - .github/workflows/macos.yml
+      - MACOS.md
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: macOS ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-build.txt
+      - name: Check native architecture
+        run: python -c "import platform; assert platform.machine() == '${{ matrix.arch }}', platform.machine()"
+      - name: Install build requirements
+        run: python -m pip install -r requirements-build.txt
+      - name: Prepare FFmpeg for checks
+        run: command -v ffmpeg && command -v ffprobe || brew install ffmpeg
+      - name: Unit tests
+        run: python -m pytest -q
+      - name: Real encoding checks
+        run: python tools/integration_check.py
+      - name: Build native app and DMG
+        run: python tools/build_macos.py
+      - name: Smoke test packaged app
+        env:
+          QT_QPA_PLATFORM: offscreen
+          PIXELPIPE_DATA_DIR: ${{ runner.temp }}/pixelpipe-smoke
+          PIXELPIPE_SMOKE_REPORT: ${{ github.workspace }}/dist/smoke-${{ matrix.arch }}.json
+        run: |
+          "dist/PixelPipe Encoder.app/Contents/MacOS/PixelPipeEncoder" --smoke-test
+          cat "dist/smoke-${{ matrix.arch }}.json"
+      - name: Upload DMG and verification results
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelPipe-macOS-${{ matrix.arch }}
+          path: |
+            dist/*.dmg
+            dist/*.sha256
+            dist/smoke-*
+          if-no-files-found: error
+          retention-days: 30

@@ -1,5 +1,13 @@
 # Changelog
 
+## macOS preview
+
+- Added native Apple Silicon and Intel app/DMG builds on macOS runners.
+- Added Finder-compatible FFmpeg discovery and automatic setup via existing Homebrew.
+- Added macOS Application Support paths, a native app icon, and platform-specific help.
+- Added packaged GUI smoke checks and real encoding checks for both Mac architectures.
+- The initial Mac preview uses CPU x264 and is not Apple-notarized.
+
 ## 0.1.0 — Initial release
 
 - Added a queue-based Windows desktop interface.

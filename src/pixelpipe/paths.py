@@ -22,6 +22,8 @@ def user_data_directory() -> Path:
     override = os.environ.get("PIXELPIPE_DATA_DIR")
     if override:
         path = Path(override).expanduser().resolve()
+    elif sys.platform == "darwin":
+        path = Path.home() / "Library" / "Application Support" / APP_NAME
     else:
         base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
         path = base / APP_NAME
